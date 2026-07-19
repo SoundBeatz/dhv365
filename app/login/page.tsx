@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { login } from "./actions";
+import { PasswordResetForm } from "./password-reset-form";
 
 export const metadata: Metadata = {
   title: "Beveiligd inloggen",
@@ -14,6 +15,7 @@ type LoginPageProps = {
     signedout?: string;
     passwordupdated?: string;
     next?: string;
+    reset?: string;
   }>;
 };
 
@@ -42,6 +44,7 @@ const accessOptions = [
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
+  const recoveryMode = params.reset === "1";
 
   return (
     <main className="authShell">
@@ -52,9 +55,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div>
           <span className="eyebrow">Secure Operations Platform</span>
-          <h1>Beveiligde toegang.</h1>
+          <h1>{recoveryMode ? "Herstel uw toegang." : "Beveiligde toegang."}</h1>
           <p className="lead">
-            Alleen vooraf geverifieerde en uitgenodigde DHV365-gebruikers krijgen toegang.
+            {recoveryMode
+              ? "Kies een nieuw sterk wachtwoord voor uw beveiligde DHV365-account."
+              : "Alleen vooraf geverifieerde en uitgenodigde DHV365-gebruikers krijgen toegang."}
           </p>
         </div>
 
@@ -66,54 +71,58 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </section>
 
       <section className="authFormWrap">
-        <form action={login} className="authForm">
-          <span className="eyebrow">Identity verification</span>
-          <h2>Inloggen</h2>
-          <p>Gebruik uitsluitend uw persoonlijk toegewezen account.</p>
+        {recoveryMode ? (
+          <PasswordResetForm />
+        ) : (
+          <form action={login} className="authForm">
+            <span className="eyebrow">Identity verification</span>
+            <h2>Inloggen</h2>
+            <p>Gebruik uitsluitend uw persoonlijk toegewezen account.</p>
 
-          {params.error && (
-            <div className="formError" role="alert">
-              {params.error}
-            </div>
-          )}
-          {params.signedout && <div className="formSuccess">U bent veilig uitgelogd.</div>}
-          {params.passwordupdated && (
-            <div className="formSuccess">Uw wachtwoord is gewijzigd. Log opnieuw in.</div>
-          )}
+            {params.error && (
+              <div className="formError" role="alert">
+                {params.error}
+              </div>
+            )}
+            {params.signedout && <div className="formSuccess">U bent veilig uitgelogd.</div>}
+            {params.passwordupdated && (
+              <div className="formSuccess">Uw wachtwoord is gewijzigd. Log opnieuw in.</div>
+            )}
 
-          <input type="hidden" name="next" value={params.next ?? "/portal"} />
+            <input type="hidden" name="next" value={params.next ?? "/portal"} />
 
-          <label htmlFor="email">Zakelijk e-mailadres</label>
-          <input id="email" name="email" type="email" autoComplete="username" required />
+            <label htmlFor="email">Zakelijk e-mailadres</label>
+            <input id="email" name="email" type="email" autoComplete="username" required />
 
-          <label htmlFor="password">Wachtwoord</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            minLength={8}
-            required
-          />
+            <label htmlFor="password">Wachtwoord</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              minLength={8}
+              required
+            />
 
-          <button className="button" type="submit">
-            Veilig inloggen →
-          </button>
+            <button className="button" type="submit">
+              Veilig inloggen →
+            </button>
 
-          <nav className="authAccessGrid" aria-label="Toegangsopties">
-            {accessOptions.map((option) => (
-              <Link href={option.href} className="authAccessCard" key={option.href}>
-                <strong>{option.title}</strong>
-                <span>{option.description}</span>
-              </Link>
-            ))}
-          </nav>
+            <nav className="authAccessGrid" aria-label="Toegangsopties">
+              {accessOptions.map((option) => (
+                <Link href={option.href} className="authAccessCard" key={option.href}>
+                  <strong>{option.title}</strong>
+                  <span>{option.description}</span>
+                </Link>
+              ))}
+            </nav>
 
-          <small>
-            Problemen met toegang? Neem contact op met uw DHV365-beheerder. Deel nooit uw
-            wachtwoord of verificatiecode.
-          </small>
-        </form>
+            <small>
+              Problemen met toegang? Neem contact op met uw DHV365-beheerder. Deel nooit uw
+              wachtwoord of verificatiecode.
+            </small>
+          </form>
+        )}
       </section>
     </main>
   );
