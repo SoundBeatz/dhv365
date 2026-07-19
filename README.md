@@ -36,3 +36,5 @@ The repository is configured with `output: standalone`, strict TypeScript, secur
 The current release is the public marketing and platform foundation. It intentionally does **not** accept uploads or identity documents until authentication, encrypted object storage, audit logging, retention controls and a reviewed privacy basis are implemented.
 
 Never commit a Supabase secret/service-role key or prefix one with `NEXT_PUBLIC_`.
+
+<!-- Production restore deployment trigger: 2026-07-19 -->
