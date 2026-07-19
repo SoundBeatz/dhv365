@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
   compress: true,
   reactStrictMode: true,
   output: "standalone",
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.dhv365.nl" }],
+        destination: "https://dhv365.nl/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
