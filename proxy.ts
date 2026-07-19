@@ -10,8 +10,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(canonical, 308);
   }
   const isPortalRoute = request.nextUrl.pathname.startsWith("/portal");
-  const isLoginRoute = request.nextUrl.pathname === "/login";
-  if (!isPortalRoute && !isLoginRoute) return NextResponse.next();
+  if (!isPortalRoute) return NextResponse.next();
 
   const { response, userId } = await updateSession(request);
   if (isPortalRoute && !userId) {
@@ -20,7 +19,6 @@ export async function proxy(request: NextRequest) {
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
-  if (isLoginRoute && userId) return NextResponse.redirect(new URL("/portal", request.url));
   return response;
 }
 
