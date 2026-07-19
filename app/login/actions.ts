@@ -38,12 +38,12 @@ export async function requestPasswordReset(formData: FormData) {
   if (!email) redirect("/forgot-password?error=Vul+een+geldig+e-mailadres+in");
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dhv365.nl";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://dhv365.nl").replace(/\/$/, "");
   let failed = false;
 
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/login?reset=1`,
+      redirectTo: `${siteUrl}/login/?reset=1`,
     });
 
     if (error) {
@@ -67,7 +67,6 @@ export async function requestPasswordReset(formData: FormData) {
     );
   }
 
-  // Always return the same success response to prevent account enumeration.
   redirect("/forgot-password?sent=1");
 }
 
