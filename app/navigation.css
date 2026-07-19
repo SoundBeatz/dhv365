@@ -1,0 +1,3 @@
+.loginLink{display:inline-flex;align-items:center;font-weight:800;color:var(--accent)!important}
+@media(max-width:900px){.links .loginLink{display:inline-flex!important}}
+@media(max-width:560px){.links{gap:10px}.links .loginLink{font-size:12px}.links .button{padding:10px 12px;font-size:12px}}
