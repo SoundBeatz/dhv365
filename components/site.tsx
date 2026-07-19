@@ -2,35 +2,59 @@ import Link from "next/link";
 
 export function Header() {
   return (
-    <header className="nav">
-      <div className="wrap navin">
-        <Link href="/" className="brand" aria-label="DHV365 home">
-          DHV<span>365</span>
-        </Link>
-
-        <div className="navActions">
-          <nav className="links" aria-label="Hoofdnavigatie">
-            <Link href="/#diensten">Diensten</Link>
-            <Link href="/#werkwijze">Werkwijze</Link>
-            <Link href="/veiligheid">Veiligheid</Link>
-            <Link href="/werkgebied">Werkgebied</Link>
-          </nav>
-
-          <Link
-            href="/login"
-            className="button ghost headerLogin"
-            aria-label="Inloggen bij DHV365"
-            style={{ display: "inline-flex", visibility: "visible", opacity: 1 }}
-          >
-            Inloggen
+    <>
+      <header className="nav">
+        <div className="wrap navin">
+          <Link href="/" className="brand" aria-label="DHV365 home">
+            DHV<span>365</span>
           </Link>
 
-          <Link href="/opdracht" className="button requestButton">
-            Opdracht aanvragen <span>→</span>
-          </Link>
+          <div className="navActions" style={{ paddingRight: "118px" }}>
+            <nav className="links" aria-label="Hoofdnavigatie">
+              <Link href="/#diensten">Diensten</Link>
+              <Link href="/#werkwijze">Werkwijze</Link>
+              <Link href="/veiligheid">Veiligheid</Link>
+              <Link href="/werkgebied">Werkgebied</Link>
+            </nav>
+
+            <Link href="/opdracht" className="button requestButton">
+              Opdracht aanvragen <span>→</span>
+            </Link>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <Link
+        href="/login"
+        aria-label="Inloggen bij DHV365"
+        style={{
+          position: "fixed",
+          top: "14px",
+          right: "16px",
+          zIndex: 2147483647,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "42px",
+          padding: "10px 16px",
+          border: "1px solid rgba(183,255,101,.45)",
+          borderRadius: "9px",
+          background: "#0d1916",
+          color: "#f4f7f5",
+          fontWeight: 800,
+          fontSize: "14px",
+          lineHeight: 1,
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+          visibility: "visible",
+          opacity: 1,
+          pointerEvents: "auto",
+          boxShadow: "0 8px 30px rgba(0,0,0,.28)",
+        }}
+      >
+        Inloggen
+      </Link>
+    </>
   );
 }
 
