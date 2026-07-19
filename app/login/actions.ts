@@ -27,11 +27,28 @@ export async function requestPasswordReset(formData: FormData) {
 
   const supabase = await createClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dhv365.nl";
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
-  });
 
-  // Always return the same response to prevent account enumeration.
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
+    });
+
+    if (error) {
+      console.error("Password reset request failed", {
+        code: error.code ?? "unknown",
+        status: error.status ?? null,
+        message: error.message,
+      });
+      redirect("/forgot-password?error=De+herstelmail+kon+niet+worden+verzonden.+Probeer+het+later+opnieuw");
+    }
+  } catch (error) {
+    console.error("Password reset request threw an exception", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    redirect("/forgot-password?error=De+herstelmail+kon+niet+worden+verzonden.+Probeer+het+later+opnieuw");
+  }
+
+  // Always return the same success response to prevent account enumeration.
   redirect("/forgot-password?sent=1");
 }
 
