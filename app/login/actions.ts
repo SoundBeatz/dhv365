@@ -7,11 +7,23 @@ export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const requestedNext = String(formData.get("next") ?? "/portal");
-  const safeNext = requestedNext.startsWith("/portal") ? requestedNext : "/portal";
-  if (!email || password.length < 8) redirect("/login?error=Controleer+uw+inloggegevens");
+  const safeNext =
+    requestedNext.startsWith("/portal") || requestedNext.startsWith("/admin")
+      ? requestedNext
+      : "/portal";
+
+  if (!email || password.length < 8) {
+    redirect("/login?error=Controleer+uw+inloggegevens");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect("/login?error=Inloggen+mislukt");
+
+  if (error) {
+    const errorTarget = safeNext.startsWith("/admin") ? "/admin/login" : "/login";
+    redirect(`${errorTarget}?error=Inloggen+mislukt`);
+  }
+
   redirect(safeNext);
 }
 
@@ -50,7 +62,9 @@ export async function requestPasswordReset(formData: FormData) {
   }
 
   if (failed) {
-    redirect("/forgot-password?error=De+herstelmail+kon+niet+worden+verzonden.+Probeer+het+later+opnieuw");
+    redirect(
+      "/forgot-password?error=De+herstelmail+kon+niet+worden+verzonden.+Probeer+het+later+opnieuw",
+    );
   }
 
   // Always return the same success response to prevent account enumeration.
@@ -61,7 +75,8 @@ export async function updatePassword(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
   if (password.length < 14) redirect("/update-password?error=Gebruik+minimaal+14+tekens");
-  if (password !== confirmation) redirect("/update-password?error=Wachtwoorden+komen+niet+overeen");
+  if (password !== confirmation)
+    redirect("/update-password?error=Wachtwoorden+komen+niet+overeen");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
