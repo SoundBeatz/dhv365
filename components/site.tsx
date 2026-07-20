@@ -9,7 +9,7 @@ export function Header() {
           DHV<span>365</span>
         </Link>
         <nav className="links" aria-label="Hoofdnavigatie">
-          <Link href="/#diensten">Diensten</Link>
+          <Link href="/#diensten">Dienen</Link>
           <Link href="/#werkwijze">Werkwijze</Link>
           <Link href="/veiligheid">Veiligheid</Link>
           <Link href="/werkgebied">Werkgebied</Link>
