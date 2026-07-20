@@ -9,7 +9,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://dhv365.nl";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: "DHV365 | Dedicated High Value & Critical Transport", template: "%s | DHV365" },
-  description: "Dedicated vervoer van vertrouwelijke, waardevolle en tijdkritische zendingen. Eén chauffeur, één voertuig, geen overslag en volledige chain-of-custody.",
+  description: "Dedicated vervoer van vertrouwelijke, waardevolle en tijdkritische zendingen. Eén chauffeur, één voertuig, geen overslag and volledige chain-of-custody.",
   applicationName: "DHV365",
   alternates: { canonical: "/", languages: { "nl-NL": "/" } },
   openGraph: {
@@ -28,5 +28,37 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#07110f", colorScheme: "dark" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="nl" className={`${manrope.variable} ${space.variable}`}><body>{children}</body></html>;
+  return (
+    <html lang="nl" className={`${manrope.variable} ${space.variable}`}>
+      <body style={{ margin: 0, position: "relative" }}>
+        {/* Zwevende, subtiele Inlogknop rechtsboven over de hele site */}
+        <div style={{
+          position: "absolute",
+          top: "24px",
+          right: "220px", /* Plaatst hem netjes links naast de 'Opdracht aanvragen' knop */
+          zIndex: 9999,
+        }}>
+          <a 
+            href="/inloggen" 
+            style={{
+              display: "inline-block",
+              color: "#f5f7f7",
+              textDecoration: "none",
+              fontWeight: "600",
+              fontSize: "14px",
+              padding: "10px 18px",
+              borderRadius: "8px",
+              border: "1px solid #2a2f31",
+              background: "#141719",
+              transition: "all 0.2s ease"
+            }}
+          >
+            Inloggen
+          </a>
+        </div>
+        
+        {children}
+      </body>
+    </html>
+  );
 }
