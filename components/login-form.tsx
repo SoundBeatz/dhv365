@@ -14,6 +14,7 @@ export function LoginForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     setLoading(true);
     setMessage(null);
     setError(null);
@@ -26,49 +27,66 @@ export function LoginForm() {
     try {
       if (mode === "reset") {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/wachtwoord-wijzigen`,
+          redirectTo: "https://dhv365.nl",
         });
+
         if (resetError) throw resetError;
+
         setMessage("Als dit account bestaat, ontvangt u een beveiligde herstelmail.");
         return;
       }
 
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (loginError) throw loginError;
 
-      await fetch("/api/auth/login-alert", { method: "POST" }).catch(() => undefined);
+      await fetch("/api/auth/login-alert", {
+        method: "POST",
+    }).catch(() => undefined);
+
       router.replace("/portal");
       router.refresh();
     } catch {
-      setError(mode === "login" ? "Inloggen is niet gelukt. Controleer uw gegevens." : "De herstelmail kon niet worden aangevraagd.");
-    } finally {
+      setError(
+        mode === "login"
+          ? "Inloggen is niet gelukt. Controleer uw gegevens."
+          : "De herstelmail kon niet worden aangevraagd."
+      );
+    } finaly {
       setLoading(false);
     }
   }
 
   return (
-    <div className={styles.card}>
-      <h1 className={styles.heading}>{mode === "login" ? "Inloggen" : "Wachtwoord herstellen"}</h1>
-      <p className={styles.intro}>{mode === "login" ? "Toegang tot het beveiligde DHV365-klantportaal." : "U ontvangt een beveiligde link via Supabase Auth en Resend SMTP."}</p>
-      <form className={styles.form} onSubmit={submit}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="email">E-mailadres</label>
-          <input className={styles.input} id="email" name="email" type="email" autoComplete="email" required />
+    <div className={styles.container}>
+      <form onSubmit={submit} className={styles.form}>
+        <h1 className={styles.title}>{mode === "login" ? "Inloggen" : "Wachtwoord herstellen"}</h1>
+        {message && <p className={styles.success}>{message}</p>}
+        {error && <p className={styles.error}>{error}</p>}
+        
+        <div className={styles.group}>
+          <label htmlFor="email">E-mailadres</label>
+          <input type="email" id="email" name="email" required disabled={loading} className={styles.input} />
         </div>
-        {mode === "login" && <div className={styles.field}>
-          <label className={styles.label} htmlFor="password">Wachtwoord</label>
-          <input className={styles.input} id="password" name="password" type="password" autoComplete="current-password" minLength={8} required />
-        </div>}
-        {message && <div className={styles.message} role="status">{message}</div>}
-        {error && <div className={styles.error} role="alert">{error}</div>}
-        <div className={styles.row}>
-          <button className="button" type="submit" disabled={loading}>{loading ? "Verwerken…" : mode === "login" ? "Veilig inloggen" : "Herstelmail aanvragen"}</button>
-          <button className={styles.linkButton} type="button" onClick={() => { setMode(mode === "login" ? "reset" : "login"); setError(null); setMessage(null); }}>
-            {mode === "login" ? "Wachtwoord vergeten?" : "Terug naar inloggen"}
-          </button>
-        </div>
+
+        {mode === "login" && (
+          <div className={styles.group}>
+            <label htmlFor="password">Wachtwoord</label>
+            <input type="password" id="password" name="password" required disabled={loading} className={styles.input} />
+          </div>
+        )}
+
+        <button type="submit" disabled={loading} className={styles.button}>
+          {loading ? "Laden..." : mode === "login" ? "Inloggen" : "Herstelmail aanvragen"}
+        </button>
+
+        <button type="button" onClick={() => setMode(mode === "login" ? "reset" : "login")} className={styles.switchButton}>
+          {mode === "login" ? "Wachtwoord vergeten?" : "Terug naar inloggen"}
+        </button>
       </form>
-      <p className={styles.small}>Nog geen account? Accounts worden uitsluitend na verificatie door DHV365 aangemaakt.</p>
     </div>
   );
 }
