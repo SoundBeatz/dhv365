@@ -4,3 +4,6 @@ project_id = "dhv365"
 
 [functions.email-worker]
 verify_jwt = false
+
+[functions.email-enqueue]
+verify_jwt = false
