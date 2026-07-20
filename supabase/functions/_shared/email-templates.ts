@@ -52,9 +52,13 @@ function requiredString(payload: Record<string, unknown>, key: string): string {
   return value.trim();
 }
 
+function detailRow(label: string, value: string): string {
+  return `<tr><td style="padding:8px 12px;color:#9ca6aa;vertical-align:top;width:150px">${escapeHtml(label)}</td><td style="padding:8px 12px;color:#f5f7f7">${escapeHtml(value)}</td></tr>`;
+}
+
 export function renderTemplate(templateKey: string, payload: Record<string, unknown>): EmailTemplateResult {
   switch (templateKey) {
-    case "system.test": {
+    case "system.test":
       return layout({
         title: "DHV365 mailsysteem werkt",
         preheader: "De DHV365 e-mailinfrastructuur is actief.",
@@ -62,20 +66,21 @@ export function renderTemplate(templateKey: string, payload: Record<string, unkn
         bodyHtml: "<p style=\"margin:0\">Deze test bevestigt dat de beveiligde DHV365 e-mailqueue en Resend-koppeling correct functioneren.</p>",
         bodyText: "Deze test bevestigt dat de beveiligde DHV365 e-mailqueue en Resend-koppeling correct functioneren.",
       });
-    }
+
     case "account.welcome": {
       const name = requiredString(payload, "name");
       const loginUrl = requiredString(payload, "loginUrl");
       return layout({
         title: "Welkom bij DHV365",
         preheader: "Uw beveiligde DHV365-account is gereed.",
-        heading: `Welkom, ${escapeHtml(name)}`,
+        heading: `Welkom, ${name}`,
         bodyHtml: "<p style=\"margin:0\">Uw DHV365-account is aangemaakt. Via het beveiligde klantportaal beheert u aanvragen, documenten en de voortgang van opdrachten.</p>",
         bodyText: `Hallo ${name}, uw DHV365-account is aangemaakt. Via het beveiligde klantportaal beheert u aanvragen, documenten en de voortgang van opdrachten.`,
         buttonLabel: "Open klantportaal",
         buttonUrl: loginUrl,
       });
     }
+
     case "account.password_changed": {
       const name = requiredString(payload, "name");
       return layout({
@@ -86,6 +91,7 @@ export function renderTemplate(templateKey: string, payload: Record<string, unkn
         bodyText: `Hallo ${name}, uw wachtwoord is gewijzigd. Was u dit niet? Neem dan direct contact op met DHV365 Account Service.`,
       });
     }
+
     case "account.login_alert": {
       const name = requiredString(payload, "name");
       const details = requiredString(payload, "details");
@@ -97,16 +103,52 @@ export function renderTemplate(templateKey: string, payload: Record<string, unkn
         bodyText: `Hallo ${name}, er is een nieuwe login geregistreerd. ${details}. Herkent u deze login niet? Wijzig dan onmiddellijk uw wachtwoord.`,
       });
     }
+
     case "contact.received": {
       const name = requiredString(payload, "name");
+      const reference = requiredString(payload, "reference");
       return layout({
-        title: "Wij hebben uw bericht ontvangen",
+        title: `Aanvraag ontvangen · ${reference}`,
         preheader: "DHV365 neemt uw aanvraag in behandeling.",
-        heading: "Dank voor uw bericht",
-        bodyHtml: `<p style="margin:0">Hallo ${escapeHtml(name)}, uw bericht is veilig ontvangen. Een medewerker van DHV365 beoordeelt de aanvraag en neemt contact met u op.</p>`,
-        bodyText: `Hallo ${name}, uw bericht is veilig ontvangen. Een medewerker van DHV365 beoordeelt de aanvraag en neemt contact met u op.`,
+        heading: "Uw aanvraag is veilig ontvangen",
+        bodyHtml: `<p style="margin:0">Hallo ${escapeHtml(name)}, uw aanvraag is geregistreerd onder referentie <strong>${escapeHtml(reference)}</strong>.</p><p>Een medewerker beoordeelt de haalbaarheid, risico's en benodigde beveiligingsmaatregelen. Deze ontvangstbevestiging is nog geen formele opdrachtacceptatie.</p>`,
+        bodyText: `Hallo ${name}, uw aanvraag is geregistreerd onder referentie ${reference}. Een medewerker beoordeelt de haalbaarheid, risico's en benodigde beveiligingsmaatregelen. Deze ontvangstbevestiging is nog geen formele opdrachtacceptatie.`,
       });
     }
+
+    case "contact.admin": {
+      const reference = requiredString(payload, "reference");
+      const company = requiredString(payload, "company");
+      const name = requiredString(payload, "name");
+      const email = requiredString(payload, "email");
+      const phone = requiredString(payload, "phone");
+      const category = requiredString(payload, "category");
+      const pickupRegion = requiredString(payload, "pickupRegion");
+      const deliveryRegion = requiredString(payload, "deliveryRegion");
+      const desiredDate = requiredString(payload, "desiredDate");
+      const urgency = requiredString(payload, "urgency");
+      const summary = requiredString(payload, "summary");
+      const rows = [
+        detailRow("Referentie", reference),
+        detailRow("Bedrijf", company),
+        detailRow("Contactpersoon", name),
+        detailRow("E-mail", email),
+        detailRow("Telefoon", phone),
+        detailRow("Categorie", category),
+        detailRow("Ophaalregio", pickupRegion),
+        detailRow("Afleverregio", deliveryRegion),
+        detailRow("Gewenste datum", desiredDate),
+        detailRow("Urgentie", urgency),
+      ].join("");
+      return layout({
+        title: `Nieuwe DHV365-aanvraag · ${reference}`,
+        preheader: `${company} heeft een nieuwe transportaanvraag ingediend.`,
+        heading: "Nieuwe opdrachtvoorbeoordeling",
+        bodyHtml: `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #2a2f31;border-radius:8px">${rows}</table><h2 style="font-size:18px;margin:24px 0 8px">Omschrijving</h2><p style="white-space:pre-wrap;margin:0">${escapeHtml(summary)}</p>`,
+        bodyText: `Nieuwe aanvraag ${reference}\nBedrijf: ${company}\nContactpersoon: ${name}\nE-mail: ${email}\nTelefoon: ${phone}\nCategorie: ${category}\nRoute: ${pickupRegion} naar ${deliveryRegion}\nGewenste datum: ${desiredDate}\nUrgentie: ${urgency}\n\nOmschrijving:\n${summary}`,
+      });
+    }
+
     default:
       throw new Error(`Unsupported email template: ${templateKey}`);
   }
