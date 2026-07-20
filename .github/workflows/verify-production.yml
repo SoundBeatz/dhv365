@@ -1,0 +1,74 @@
+name: Verify DHV365 Production
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/inloggen/**"
+      - "components/login-form.tsx"
+      - "components/auth-form.module.css"
+      - "components/site.tsx"
+      - ".github/workflows/verify-production.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-dhv365-production
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify live login and navigation
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Wait for Hostinger deployment and verify production
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          homepage="$(mktemp)"
+          loginpage="$(mktemp)"
+
+          for attempt in $(seq 1 24); do
+            echo "Production verification attempt ${attempt}/24"
+
+            home_status="$(curl --silent --show-error --location \
+              --output "$homepage" --write-out '%{http_code}' \
+              --max-time 20 https://dhv365.nl/ || true)"
+
+            login_status="$(curl --silent --show-error --location \
+              --output "$loginpage" --write-out '%{http_code}' \
+              --max-time 20 https://dhv365.nl/inloggen || true)"
+
+            home_ok=false
+            login_ok=false
+
+            if [ "$home_status" = "200" ] \
+              && grep -Fq 'href="/inloggen"' "$homepage" \
+              && grep -Fq 'Klantportaal inloggen' "$homepage"; then
+              home_ok=true
+            fi
+
+            if [ "$login_status" = "200" ] \
+              && grep -Fq 'Veilig inloggen' "$loginpage" \
+              && grep -Fq 'Wachtwoord vergeten?' "$loginpage"; then
+              login_ok=true
+            fi
+
+            if [ "$home_ok" = true ] && [ "$login_ok" = true ]; then
+              echo "DHV365 production verification passed."
+              exit 0
+            fi
+
+            echo "Homepage HTTP: $home_status; navigation present: $home_ok"
+            echo "Login HTTP: $login_status; login form present: $login_ok"
+            sleep 20
+          done
+
+          echo "::error::Production did not expose the required login route and navigation within the verification window."
+          exit 1
