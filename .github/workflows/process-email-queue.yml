@@ -1,0 +1,56 @@
+name: Process DHV365 Email Queue
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dhv365-email-queue-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    name: Process pending transactional emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      EMAIL_WEBHOOK_SECRET: ${{ secrets.EMAIL_WEBHOOK_SECRET }}
+
+    steps:
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_PROJECT_REF EMAIL_WEBHOOK_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is missing"
+              exit 1
+            fi
+          done
+
+      - name: Process email queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "x-email-webhook-secret: $EMAIL_WEBHOOK_SECRET" \
+            --data '{"batchSize":25}' \
+            "https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/email-worker")"
+          cat "$response_file"
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Email worker returned HTTP $status"
+            exit 1
+          fi
+          node -e 'const fs=require("fs"); const body=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(body.ok!==true) process.exit(1); console.log(`Processed: ${body.claimed}; sent: ${body.sent}; failed: ${body.failed}`);' "$response_file"
