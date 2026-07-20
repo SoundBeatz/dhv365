@@ -1,0 +1,15 @@
+.loginLink,
+.primaryAction {
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .loginLink {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .primaryAction {
+    display: none;
+  }
+}
