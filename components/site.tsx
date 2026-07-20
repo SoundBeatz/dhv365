@@ -1,4 +1,5 @@
 import Link from "next/link";
+import styles from "./site.module.css";
 
 export function Header() {
   return (
@@ -12,10 +13,10 @@ export function Header() {
           <Link href="/#werkwijze">Werkwijze</Link>
           <Link href="/veiligheid">Veiligheid</Link>
           <Link href="/werkgebied">Werkgebied</Link>
-          <Link href="/inloggen" className="button ghost">
+          <Link href="/inloggen" className={`button ghost ${styles.loginLink}`}>
             Inloggen
           </Link>
-          <Link href="/opdracht" className="button">
+          <Link href="/opdracht" className={`button ${styles.primaryAction}`}>
             Opdracht aanvragen <span aria-hidden="true">→</span>
           </Link>
         </nav>
