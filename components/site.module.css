@@ -5,11 +5,13 @@
 
 @media (max-width: 560px) {
   .loginLink {
-    padding: 9px 12px;
+    padding: 8px 10px;
     font-size: 13px;
   }
-
+  
   .primaryAction {
-    display: none;
+    padding: 8px 10px;
+    font-size: 13px;
+    display: inline-block !important; /* Dwingt de knop zichtbaar te blijven op mobiel */
   }
 }
