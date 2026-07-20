@@ -55,7 +55,7 @@ export function LoginForm() {
           ? "Inloggen is niet gelukt. Controleer uw gegevens."
           : "De herstelmail kon niet worden aangevraagd."
       );
-    } finaly {
+    } finally {
       setLoading(false);
     }
   }
