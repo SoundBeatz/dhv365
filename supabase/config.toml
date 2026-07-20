@@ -1,0 +1,3 @@
+# Local Supabase CLI project configuration.
+# The production project is linked in CI with SUPABASE_PROJECT_REF.
+project_id = "dhv365"
