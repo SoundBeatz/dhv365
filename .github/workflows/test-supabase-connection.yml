@@ -1,0 +1,90 @@
+name: Test Supabase Connection
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/test-supabase-connection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test-supabase:
+    name: Verify GitHub secrets and Supabase access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify required secrets are present
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_WEBHOOK_SECRET: ${{ secrets.EMAIL_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF RESEND_API_KEY EMAIL_FROM EMAIL_WEBHOOK_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is missing"
+              missing=1
+            else
+              echo "$name is configured"
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify Supabase account and project access
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          supabase projects list --output json > projects.json
+          node <<'NODE'
+          const fs = require('fs');
+          const projectRef = process.env.SUPABASE_PROJECT_REF;
+          const projects = JSON.parse(fs.readFileSync('projects.json', 'utf8'));
+          const found = projects.some((project) => project.id === projectRef || project.ref === projectRef);
+          if (!found) {
+            console.error('Configured SUPABASE_PROJECT_REF is not accessible with this token.');
+            process.exit(1);
+          }
+          console.log('Supabase token is valid and the configured project is accessible.');
+          NODE
+
+      - name: Validate Resend secret format
+        shell: bash
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: |
+          set -euo pipefail
+          case "$RESEND_API_KEY" in
+            re_*) echo "RESEND_API_KEY format looks valid" ;;
+            *) echo "::error::RESEND_API_KEY must start with re_"; exit 1 ;;
+          esac
+          if [[ "$EMAIL_FROM" != *"<"*"@dhv365.nl>"* ]]; then
+            echo "::error::EMAIL_FROM does not look like a DHV365 sender address"
+            exit 1
+          fi
+          echo "EMAIL_FROM format looks valid"
+
+      - name: Connection test completed
+        run: echo "GitHub → Supabase configuration test passed. No database changes were made."
