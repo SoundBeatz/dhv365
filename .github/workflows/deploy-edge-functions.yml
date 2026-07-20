@@ -1,0 +1,93 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+      - ".github/workflows/deploy-edge-functions.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-production-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy and verify email worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_WEBHOOK_SECRET: ${{ secrets.EMAIL_WEBHOOK_SECRET }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF RESEND_API_KEY EMAIL_FROM EMAIL_WEBHOOK_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is missing"
+              exit 1
+            fi
+          done
+          echo "Required Edge Function deployment secrets are configured."
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Synchronize function secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase secrets set \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            "RESEND_API_KEY=$RESEND_API_KEY" \
+            "EMAIL_FROM=$EMAIL_FROM" \
+            "EMAIL_REPLY_TO=account@dhv365.nl" \
+            "EMAIL_WEBHOOK_SECRET=$EMAIL_WEBHOOK_SECRET"
+
+      - name: Deploy email worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy email-worker \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --use-api
+
+      - name: Verify deployed worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "x-email-webhook-secret: $EMAIL_WEBHOOK_SECRET" \
+            --data '{"batchSize":1}' \
+            "https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/email-worker")"
+          cat "$response_file"
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Email worker verification returned HTTP $status"
+            exit 1
+          fi
+          node -e 'const fs=require("fs"); const body=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(body.ok!==true) process.exit(1);' "$response_file"
+          echo "Email worker deployed and verified successfully."
