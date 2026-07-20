@@ -14,7 +14,10 @@ create type public.email_job_status as enum (
 create table public.email_jobs (
   id uuid primary key default gen_random_uuid(),
   template_key text not null check (template_key ~ '^[a-z0-9][a-z0-9._-]{1,99}$'),
-  recipient_email text not null check (recipient_email = lower(recipient_email) and recipient_email ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'),
+  recipient_email text not null check (
+    recipient_email = lower(recipient_email)
+    and recipient_email ~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
+  ),
   recipient_name text,
   payload jsonb not null default '{}'::jsonb check (jsonb_typeof(payload) = 'object'),
   status public.email_job_status not null default 'pending',
@@ -72,8 +75,6 @@ alter table public.email_jobs enable row level security;
 -- No client-facing policies are created intentionally.
 -- The queue is only accessible through trusted server code using the service role.
 revoke all on table public.email_jobs from anon, authenticated;
-revoke all on sequence public.email_jobs_id_seq from anon, authenticated;
-
 grant select, insert, update on table public.email_jobs to service_role;
 
 create or replace function public.claim_email_jobs(
@@ -129,10 +130,14 @@ security definer
 set search_path = public, pg_temp
 as $$
 begin
+  if provider_id is null or length(trim(provider_id)) < 3 then
+    raise exception 'provider_id must contain at least 3 characters';
+  end if;
+
   update public.email_jobs
   set status = 'sent',
       sent_at = now(),
-      provider_message_id = provider_id,
+      provider_message_id = trim(provider_id),
       locked_at = null,
       locked_by = null,
       last_error = null
@@ -163,8 +168,14 @@ begin
   end if;
 
   update public.email_jobs
-  set status = case when attempts >= max_attempts then 'failed'::public.email_job_status else 'pending'::public.email_job_status end,
-      scheduled_at = case when attempts >= max_attempts then scheduled_at else now() + make_interval(secs => retry_delay_seconds) end,
+  set status = case
+        when attempts >= max_attempts then 'failed'::public.email_job_status
+        else 'pending'::public.email_job_status
+      end,
+      scheduled_at = case
+        when attempts >= max_attempts then scheduled_at
+        else now() + make_interval(secs => retry_delay_seconds)
+      end,
       locked_at = null,
       locked_by = null,
       last_error = left(coalesce(error_message, 'Unknown delivery error'), 4000)
